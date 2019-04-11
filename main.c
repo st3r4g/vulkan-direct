@@ -44,6 +44,13 @@ VkDisplayPropertiesKHR get_display(VkPhysicalDevice physicalDevice) {
 }
 #undef maxDisplayCount
 
+static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
+VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+VkDebugUtilsMessageTypeFlagsEXT messageType, const
+VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+	fprintf(stderr, "validation layer: %s\n", pCallbackData->pMessage);
+}
+
 int main() {
 	uint32_t apiVersion;
 	vkEnumerateInstanceVersion(&apiVersion);
@@ -51,13 +58,44 @@ int main() {
 	VK_VERSION_MINOR(apiVersion), VK_VERSION_PATCH(apiVersion));
 // I should check the availability of extensions here
 
-	const char *ext[] = {"VK_KHR_display"};
+	uint32_t propertyCount = 64;
+	VkLayerProperties props[64];
+	vkEnumerateInstanceLayerProperties(&propertyCount, props);
+	for (int i=0; i<propertyCount; i++)
+		printf("%s\n", props[i].layerName);
+
+	const char *extensions[] = {
+		VK_KHR_DISPLAY_EXTENSION_NAME,
+		VK_KHR_SURFACE_EXTENSION_NAME,
+		VK_EXT_DEBUG_UTILS_EXTENSION_NAME
+	};
+	const char *layers[] = {"VK_LAYER_LUNARG_standard_validation"};
 	VkInstanceCreateInfo createInfo = {0};
 	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	createInfo.enabledExtensionCount = 1;
-	createInfo.ppEnabledExtensionNames = ext;
+	createInfo.enabledLayerCount = sizeof(layers)/sizeof(char*);
+	createInfo.ppEnabledLayerNames = layers;
+	createInfo.enabledExtensionCount = sizeof(extensions)/sizeof(char*);
+	createInfo.ppEnabledExtensionNames = extensions;
 	VkInstance instance;
 	vkCreateInstance(&createInfo, 0, &instance);
+
+	VkDebugUtilsMessengerCreateInfoEXT createInfo2 = {0};
+	createInfo2.sType =
+	VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+	createInfo2.messageSeverity =
+	VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+	VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+	VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+	VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+	createInfo2.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+	VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+	VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	createInfo2.pfnUserCallback = debugCallback;
+	PFN_vkCreateDebugUtilsMessengerEXT vkCreateDebugUtilsMessenger =
+	(PFN_vkCreateDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance,
+	"vkCreateDebugUtilsMessengerEXT");
+	VkDebugUtilsMessengerEXT debugMessenger;
+	vkCreateDebugUtilsMessenger(instance, &createInfo2, 0, &debugMessenger);
 
 	VkPhysicalDevice gpu = get_gpu(instance);
 
@@ -70,4 +108,13 @@ int main() {
 //	vkCreateDisplayPlaneSurfaceKHR();
 //	vkCreateImageView();
 //	vkCreateSwapchainKHR();
+
+
+	PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessenger =
+	(PFN_vkDestroyDebugUtilsMessengerEXT) vkGetInstanceProcAddr(instance,
+	"vkDestroyDebugUtilsMessengerEXT");
+	vkDestroyDebugUtilsMessenger(instance, debugMessenger, 0);
+	vkDestroyInstance(instance, 0);
+
+	return 0;
 }
