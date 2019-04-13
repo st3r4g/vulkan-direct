@@ -1,2 +1,2 @@
 all:
-	gcc main.c -lvulkan
+	gcc -g main.c -lvulkan
