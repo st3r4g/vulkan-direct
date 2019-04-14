@@ -1,2 +1,4 @@
 1) Segfault in a Vulkan validation layer when
 vkGetDisplayPlaneSupportedDisplaysKHR is called (bug?)
+2) Mesa implementation doesn't restore previous crtc configuration after program
+termination, so the screen blacks out and one needs to change VT.
