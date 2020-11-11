@@ -237,14 +237,24 @@ int main() {
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 	vkBeginCommandBuffer(cmdbuf, &beginInfo);
 
+	VkImageMemoryBarrier bbb = {
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+		.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		.image = imgs[0],
+		.subresourceRange = aaa
+	};
+	vkCmdPipelineBarrier(cmdbuf, 1, 1, 0, 0, 0, 0, 0, 1, &bbb);
 	vkCmdClearColorImage(cmdbuf, imgs[0],
 	VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &color, 1, &aaa);
+	bbb.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	vkCmdPipelineBarrier(cmdbuf, 1, 1, 0, 0, 0, 0, 0, 1, &bbb);
 
 	vkEndCommandBuffer(cmdbuf);
 
 	uint32_t index;
 	vkAcquireNextImageKHR(dev, swp, UINT64_MAX, VK_NULL_HANDLE,
 	VK_NULL_HANDLE, &index);
+
 
 VkSubmitInfo submitInfo = {};
 submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
